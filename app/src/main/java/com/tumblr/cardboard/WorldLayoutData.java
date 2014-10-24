@@ -33,12 +33,12 @@ public final class WorldLayoutData {
 
     public static final float[] RECT_COLORS = new float[] {
             // front, green
-            0.5f, 0.5f, 0.5f, 1.0f,
-            0.5f, 0.5f, 0.5f, 1.0f,
-            0.5f, 0.5f, 0.5f, 1.0f,
-            0.5f, 0.5f, 0.5f, 1.0f,
-            0.5f, 0.5f, 0.5f, 1.0f,
-            0.5f, 0.5f, 0.5f, 1.0f
+            0.75f, 0.75f, 0.75f, 1.0f,
+            0.75f, 0.75f, 0.75f, 1.0f,
+            0.75f, 0.75f, 0.75f, 1.0f,
+            0.75f, 0.75f, 0.75f, 1.0f,
+            0.75f, 0.75f, 0.75f, 1.0f,
+            0.75f, 0.75f, 0.75f, 1.0f
     };
 
     public static final float[] RECT_FOUND_COLORS = new float[] {

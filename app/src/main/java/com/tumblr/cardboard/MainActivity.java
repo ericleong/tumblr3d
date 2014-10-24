@@ -68,8 +68,10 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
 
 	private static final int NUM_TEXTURES = 16;
 	private static final int PHOTO_SIZE = 500;
-	private static final float SCALE_TV = 2f;
-	private static final float SCALE_THEATER = 4f;
+	private static final float SCALE_TV = 3f;
+	private static final float SCALE_TV_VR = 4f;
+	private static final float SCALE_THEATER = 6f;
+	private static final float SCALE_THEATER_VR = 8f;
 
     // We keep the light always position just above the user.
     private final float[] mLightPosInWorldSpace = new float[] {0.0f, 2.0f, 0.0f, 1.0f};
@@ -89,6 +91,9 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
     private FloatBuffer mRectNormals;
 
 	private FloatBuffer mRectTexCoords;
+
+	private float mScaleTV;
+	private float mScaleTheater;
 
     private int mGlProgram;
     private int mPositionParam;
@@ -118,7 +123,7 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
     private float[] mModelFloor;
 
     private int mSelected = -1;
-    private float mObjectDistance = 8f;
+    private float mObjectDistance = 16f;
     private float mFloorDepth = 20f;
 
 	private int mNumImages = NUM_TEXTURES;
@@ -248,6 +253,10 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
         CardboardView cardboardView = (CardboardView) findViewById(R.id.cardboard_view);
         cardboardView.setRenderer(this);
         setCardboardView(cardboardView);
+	    cardboardView.setVRModeEnabled(true);
+
+	    mScaleTV = cardboardView.getVRMode() ? SCALE_TV_VR : SCALE_TV;
+	    mScaleTheater = cardboardView.getVRMode() ? SCALE_THEATER_VR : SCALE_THEATER;
 
 	    mImageRect = new float[NUM_TEXTURES][16];
         mModelRect = new float[NUM_TEXTURES][16];
@@ -268,13 +277,19 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
 	    mTextureIds = new int[NUM_TEXTURES];
 
 	    mTumblrClient = new TumblrClient();
-	    new PostLoadTask().execute("landscape");
 
         mOverlayView = (CardboardOverlayView) findViewById(R.id.overlay);
         mOverlayView.show3DToast("Pull the magnet to enlarge a selected image.");
     }
 
-    @Override
+	@Override
+	protected void onResume() {
+		super.onResume();
+
+		new PostLoadTask().execute("cat gif");
+	}
+
+	@Override
     public void onRendererShutdown() {
         Log.i(TAG, "onRendererShutdown");
     }
@@ -585,7 +600,7 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
      * We'll rotate it around the Y-axis so it's out of sight, and then up or down by a little bit.
      */
     private void selectObject(int i) {
-	    Matrix.scaleM(mModelRect[i], 0, mImageRect[i], 0, SCALE_THEATER, SCALE_THEATER, 1f);
+	    Matrix.scaleM(mModelRect[i], 0, mImageRect[i], 0, mScaleTheater, mScaleTheater, 1f);
 	    Matrix.translateM(mModelRect[i], 0, 0f, 0f, -mObjectDistance);
     }
 
@@ -613,7 +628,7 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
 
 		Matrix.multiplyMM(mModelRect[i], 0, mImageRect[i], 0, rotationMatrix, 0);
 		Matrix.translateM(mModelRect[i], 0, 0f, 0f, -mObjectDistance);
-		Matrix.scaleM(mModelRect[i], 0, SCALE_TV, SCALE_TV, 1f);
+		Matrix.scaleM(mModelRect[i], 0, mScaleTV, mScaleTV, 1f);
 	}
 
     /**

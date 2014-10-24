@@ -279,7 +279,7 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
 	    mTumblrClient = new TumblrClient();
 
         mOverlayView = (CardboardOverlayView) findViewById(R.id.overlay);
-        mOverlayView.show3DToast("Pull the magnet to enlarge a selected image.");
+        mOverlayView.show3DToast("Pull the magnet to put photo in theater.");
     }
 
 	@Override

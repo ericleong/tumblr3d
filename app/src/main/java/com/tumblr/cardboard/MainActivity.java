@@ -66,7 +66,8 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
     private static final float YAW_LIMIT = 0.12f;
     private static final float PITCH_LIMIT = 0.12f;
 
-	private static final int NUM_TEXTURES = 8;
+	private static final int NUM_TEXTURES = 16;
+	private static final int PHOTO_SIZE = 500;
 	private static final float SCALE_TV = 2f;
 	private static final float SCALE_THEATER = 4f;
 
@@ -127,7 +128,6 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
     private CardboardOverlayView mOverlayView;
 
 	private TumblrClient mTumblrClient;
-	private Bitmap[] mBitmaps;
 
 	private Stack<PhotoTexture> mWaitingPhotoTextures = new Stack<PhotoTexture>();
 
@@ -138,6 +138,19 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
 		private PhotoTexture(int i, Bitmap bitmap) {
 			this.i = i;
 			this.bitmap = bitmap;
+		}
+	}
+
+	private class TextureLoader implements Response.Listener<Bitmap> {
+		private int index;
+
+		private TextureLoader(int i) {
+			this.index = i;
+		}
+
+		@Override
+		public void onResponse(Bitmap response) {
+			mWaitingPhotoTextures.push(new PhotoTexture(index, response));
 		}
 	}
 
@@ -162,23 +175,14 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
 				String url = sizes.get(0).getUrl();
 
 				for (PhotoSize size : sizes) {
-					if (size.getWidth() == 500) {
+					if (size.getWidth() == PHOTO_SIZE) {
 						url = size.getUrl();
 					}
 				}
 
-				PhotoRequestQueue.getInstance(MainActivity.this).addToRequestQueue(new ImageRequest(
-						url,
-						new Response.Listener<Bitmap>() {
-							@Override
-							public void onResponse(Bitmap response) {
-								if (response != null) {
-									mWaitingPhotoTextures.push(new PhotoTexture(finalI, response));
-								} else {
-									Log.e(TAG, "Null bitmap for " + finalI);
-								}
-							}
-						}, 0, 0, null, new Response.ErrorListener() {
+				PhotoRequestQueue.getInstance(MainActivity.this).addToRequestQueue(
+						new ImageRequest(url,
+						new TextureLoader(finalI), 0, 0, null, new Response.ErrorListener() {
 					@Override
 					public void onErrorResponse(VolleyError error) {
 						Log.e(TAG, "Could not load image.", error);
@@ -256,13 +260,18 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
         mVibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
 
 	    mRectTextureIds = new int[NUM_TEXTURES];
-	    mBitmaps = new Bitmap[NUM_TEXTURES];
+
+	    for (int i = 0; i < NUM_TEXTURES; i++) {
+		    mRectTextureIds[i] = -1;
+	    }
+
+	    mTextureIds = new int[NUM_TEXTURES];
 
 	    mTumblrClient = new TumblrClient();
 	    new PostLoadTask().execute("landscape");
 
         mOverlayView = (CardboardOverlayView) findViewById(R.id.overlay);
-        mOverlayView.show3DToast("Pull the magnet when you find an object.");
+        mOverlayView.show3DToast("Pull the magnet to enlarge a selected image.");
     }
 
     @Override
@@ -344,8 +353,6 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
 
         GLES20.glEnable(GLES20.GL_DEPTH_TEST);
 
-	    prepareTextures();
-
 	    Matrix.setIdentityM(mModelFloor, 0);
 	    Matrix.translateM(mModelFloor, 0, 0, -mFloorDepth, 0); // Floor appears below user
 
@@ -374,17 +381,7 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
         return "";
     }
 
-	public void prepareTextures() {
-		for (int i = 0; i < NUM_TEXTURES; i++) {
-			mRectTextureIds[i] = -1;
-		}
-
-		mTextureIds = new int[NUM_TEXTURES];
-
-//		GLES20.glGenTextures(mTextureIds.length, mTextureIds, 0);
-	}
-
-    /**
+	/**
      * Prepares OpenGL ES before we draw a frame.
      * @param headTransform The head transformation in the new frame.
      */
@@ -481,48 +478,10 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
         GLES20.glUniform1f(mIsFloorParam, 0f);
 
 	    // Set the active texture unit
-	    switch (i) {
-		    case 0:
-			    GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-			    break;
-		    case 1:
-			    GLES20.glActiveTexture(GLES20.GL_TEXTURE1);
-			    break;
-		    case 2:
-			    GLES20.glActiveTexture(GLES20.GL_TEXTURE2);
-			    break;
-		    case 3:
-			    GLES20.glActiveTexture(GLES20.GL_TEXTURE3);
-			    break;
-		    case 4:
-			    GLES20.glActiveTexture(GLES20.GL_TEXTURE4);
-			    break;
-		    case 5:
-			    GLES20.glActiveTexture(GLES20.GL_TEXTURE5);
-			    break;
-		    case 6:
-			    GLES20.glActiveTexture(GLES20.GL_TEXTURE6);
-			    break;
-		    case 7:
-			    GLES20.glActiveTexture(GLES20.GL_TEXTURE7);
-			    break;
-	    }
+	    GLES20.glActiveTexture(GLES20.GL_TEXTURE0 + i);
 
 	    // Bind the texture to this unit.
 	    GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mRectTextureIds[i]);
-
-//	    GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D,
-//			    GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
-//	    GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D,
-//			    GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
-//
-//	    // Set filtering
-//	    GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER,
-//			    GLES20.GL_NEAREST);
-//	    GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER,
-//			    GLES20.GL_LINEAR);
-
-//	    GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, mBitmaps[i], 0);
 
 	    // Tell the texture uniform sampler to use this texture in the shader by binding to texture unit 0.
 	    GLES20.glUniform1i(mRectTextureUniformParam, i);
@@ -606,7 +565,7 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
 		        selectObject(mSelected);
 	        }
         } else {
-            mOverlayView.show3DToast("Look around to find the object!");
+            mOverlayView.show3DToast("Select objects when they are yellow!");
         }
         // Always give user feedback
         mVibrator.vibrate(50);
@@ -633,7 +592,7 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
 	private void unselectObject(int i) {
 
 		// First rotate in XZ plane.
-		float azimuth = ((i + 1) * 320 / (mNumImages + 1) + 20) % 360;
+		float azimuth = ((i + 1) * 300 / (mNumImages + 1) + 30) % 360;
 
 		// Now get the up or down angle.
 		float inclination = 0; // angle in Y plane
@@ -714,38 +673,11 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
 		Log.w(TAG, "loading texture: " + i + " -> " + mTextureIds[i]);
 
 		if (mTextureIds[i] != 0) {
-//			final BitmapFactory.Options options = new BitmapFactory.Options();
-//			options.inScaled = false;   // No pre-scaling
 
 			Log.w(TAG, "size: " + bitmap.getWidth() + ", " + bitmap.getHeight());
 
 			// Set the active texture unit
-			switch (i) {
-				case 0:
-					GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-					break;
-				case 1:
-					GLES20.glActiveTexture(GLES20.GL_TEXTURE1);
-					break;
-				case 2:
-					GLES20.glActiveTexture(GLES20.GL_TEXTURE2);
-					break;
-				case 3:
-					GLES20.glActiveTexture(GLES20.GL_TEXTURE3);
-					break;
-				case 4:
-					GLES20.glActiveTexture(GLES20.GL_TEXTURE4);
-					break;
-				case 5:
-					GLES20.glActiveTexture(GLES20.GL_TEXTURE5);
-					break;
-				case 6:
-					GLES20.glActiveTexture(GLES20.GL_TEXTURE6);
-					break;
-				case 7:
-					GLES20.glActiveTexture(GLES20.GL_TEXTURE7);
-					break;
-			}
+			GLES20.glActiveTexture(GLES20.GL_TEXTURE0 + i);
 
 			Matrix.setIdentityM(mImageRect[i], 0);
 			Matrix.scaleM(mImageRect[i], 0, 1f,
@@ -767,8 +699,6 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
 
 			// Load the bitmap into the bound texture.
 			GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0);
-
-			mBitmaps[i] = bitmap;
 
 			// Recycle the bitmap, since its data has been loaded into OpenGL.
 			bitmap.recycle();

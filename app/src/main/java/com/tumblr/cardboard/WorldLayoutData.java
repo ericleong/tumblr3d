@@ -33,22 +33,22 @@ public final class WorldLayoutData {
 
     public static final float[] RECT_COLORS = new float[] {
             // front, green
-            1f, 1f, 1f, 1.0f,
-            1f, 1f, 1f, 1.0f,
-            1f, 1f, 1f, 1.0f,
-            1f, 1f, 1f, 1.0f,
-            1f, 1f, 1f, 1.0f,
-            1f, 1f, 1f, 1.0f
+            0.5f, 0.5f, 0.5f, 1.0f,
+            0.5f, 0.5f, 0.5f, 1.0f,
+            0.5f, 0.5f, 0.5f, 1.0f,
+            0.5f, 0.5f, 0.5f, 1.0f,
+            0.5f, 0.5f, 0.5f, 1.0f,
+            0.5f, 0.5f, 0.5f, 1.0f
     };
 
     public static final float[] RECT_FOUND_COLORS = new float[] {
             // front, yellow
-            1.0f,  0.6523f, 0.0f, 1.0f,
-            1.0f,  0.6523f, 0.0f, 1.0f,
-            1.0f,  0.6523f, 0.0f, 1.0f,
-            1.0f,  0.6523f, 0.0f, 1.0f,
-            1.0f,  0.6523f, 0.0f, 1.0f,
-            1.0f,  0.6523f, 0.0f, 1.0f
+            1.0f, 1.0f, 1.0f, 1.0f,
+            1.0f, 1.0f, 1.0f, 1.0f,
+            1.0f, 1.0f, 1.0f, 1.0f,
+            1.0f, 1.0f, 1.0f, 1.0f,
+            1.0f, 1.0f, 1.0f, 1.0f,
+            1.0f, 1.0f, 1.0f, 1.0f
     };
 
     public static final float[] RECT_NORMALS = new float[] {
@@ -90,12 +90,12 @@ public final class WorldLayoutData {
     };
 
     public static final float[] FLOOR_COLORS = new float[] {
-            0.0f, 0.3398f, 0.9023f, 1.0f,
-            0.0f, 0.3398f, 0.9023f, 1.0f,
-            0.0f, 0.3398f, 0.9023f, 1.0f,
-            0.0f, 0.3398f, 0.9023f, 1.0f,
-            0.0f, 0.3398f, 0.9023f, 1.0f,
-            0.0f, 0.3398f, 0.9023f, 1.0f,
+            0.2f, 0.2745f, 0.3647f, 1.0f,
+            0.2f, 0.2745f, 0.3647f, 1.0f,
+            0.2f, 0.2745f, 0.3647f, 1.0f,
+            0.2f, 0.2745f, 0.3647f, 1.0f,
+            0.2f, 0.2745f, 0.3647f, 1.0f,
+            0.2f, 0.2745f, 0.3647f, 1.0f,
     };
 
 }

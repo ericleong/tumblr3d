@@ -510,7 +510,7 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
 	    // Enable the "aTextureCoord" vertex attribute.
 	    GLES20.glEnableVertexAttribArray(mRectTextureCoordinateParam);
 
-        if (isLookingAtObject(i)) {
+        if (i == mSelected || isLookingAtObject(i)) {
             GLES20.glVertexAttribPointer(mColorParam, 4, GLES20.GL_FLOAT, false,
                     0, mRectFoundColors);
         } else {
@@ -565,7 +565,7 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
 		        selectObject(mSelected);
 	        }
         } else {
-            mOverlayView.show3DToast("Select objects when they are yellow!");
+            mOverlayView.show3DToast("Select objects when they are highlighted!");
         }
         // Always give user feedback
         mVibrator.vibrate(50);

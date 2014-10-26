@@ -14,12 +14,12 @@ import java.util.Map;
  */
 public class TumblrClient {
 
-	private static final String TUMBLR_CLIENT_ID = BuildConfig.TUMBLR_CLIENT_ID;
-	private static final String TUMBLR_SECRET = BuildConfig.TUMBLR_SECRET;
+	private static final String TUMBLR_CONSUMER_KEY = BuildConfig.TUMBLR_CONSUMER_KEY;
+	private static final String TUMBLR_SECRET_KEY = BuildConfig.TUMBLR_SECRET_KEY;
 
 	private static final String TYPE_PHOTO = "photo";
 
-	private JumblrClient mApi = new JumblrClient(TUMBLR_CLIENT_ID, TUMBLR_SECRET);
+	private JumblrClient mApi = new JumblrClient(TUMBLR_CONSUMER_KEY, TUMBLR_SECRET_KEY);
 
 	public List<Post> getPosts(String query) {
 		final Map<String, String> options = new HashMap<String, String>();

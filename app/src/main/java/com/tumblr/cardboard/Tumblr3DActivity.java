@@ -56,9 +56,9 @@ import javax.microedition.khronos.egl.EGLConfig;
 /**
  * A Cardboard sample application.
  */
-public class MainActivity extends CardboardActivity implements CardboardView.StereoRenderer {
+public class Tumblr3DActivity extends CardboardActivity implements CardboardView.StereoRenderer {
 
-    private static final String TAG = MainActivity.class.getSimpleName();
+    private static final String TAG = Tumblr3DActivity.class.getSimpleName();
 
     private static final float CAMERA_Z = 0.01f;
     private static final float TIME_DELTA = 0.3f;
@@ -185,7 +185,7 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
 					}
 				}
 
-				PhotoRequestQueue.getInstance(MainActivity.this).addToRequestQueue(
+				PhotoRequestQueue.getInstance(Tumblr3DActivity.this).addToRequestQueue(
 						new ImageRequest(url,
 						new TextureLoader(finalI), 0, 0, null, new Response.ErrorListener() {
 					@Override

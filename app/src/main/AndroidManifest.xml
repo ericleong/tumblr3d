@@ -15,7 +15,7 @@
 
         <activity
                 android:screenOrientation="landscape"
-                android:name="com.tumblr.cardboard.MainActivity"
+                android:name=".Tumblr3DActivity"
                 android:label="@string/app_name" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

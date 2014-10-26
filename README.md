@@ -1,7 +1,7 @@
 ![a tumblr cardboard icon](app/src/main/res/drawable-xxhdpi/ic_launcher.png?raw=true)
 
-Tumblr Cardboard
-================
+Tumblr3D
+========
 
 Tumblr posts for [Google Cardboard](http://g.co/cardboard).
 

@@ -10,8 +10,11 @@ build
 To run this project, you need API keys from [Tumblr](https://www.tumblr.com/oauth/apps).
 
 Create a `local.properties` file in the root of the project with these values
+
+```
 tumblrConsumerKey=""
 tumblrSecretKey=""
+```
 
 libraries
 ---------

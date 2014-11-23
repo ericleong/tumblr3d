@@ -136,6 +136,7 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 	private TumblrClient mTumblrClient;
 
 	private Queue<PhotoTexture> mWaitingPhotoTextures = new LinkedList<>();
+	private List<Post> mCurrentPosts;
 
 	/**
 	 * Maps an OpenGL texture to a bitmap.
@@ -205,6 +206,8 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 				}
 				));
 			}
+
+			mCurrentPosts = posts;
 		}
 	}
 
@@ -579,10 +582,11 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 	    int i = isLookingAtObject();
 
         if (i >= 0) {
-	        if (i == mSelectedTexIndex) {
-		        mOverlayView.show3DToast("Current: " + i);
-	        } else {
-		        mOverlayView.show3DToast("Selected: " + i);
+	        if (mCurrentPosts != null) {
+		        mOverlayView.show3DToast(mCurrentPosts.get(i).getBlogName());
+	        }
+
+	        if (i != mSelectedTexIndex) {
 		        if (mSelectedTexIndex >= 0 && mSelectedTexIndex < mNumImages) {
 			        unselectObject(mSelectedTexIndex);
 		        }

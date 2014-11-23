@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
+ * Basic {@link com.tumblr.jumblr.JumblrClient} that downloads photos.
+ *
  * Created by ericleong on 10/23/14.
  */
 public class TumblrClient {
@@ -21,6 +23,10 @@ public class TumblrClient {
 
 	private JumblrClient mApi = new JumblrClient(TUMBLR_CONSUMER_KEY, TUMBLR_SECRET_KEY);
 
+	/**
+	 * @param query the tagged search parameter
+	 * @return a list of photo posts
+	 */
 	public List<Post> getPosts(String query) {
 		final Map<String, String> options = new HashMap<String, String>();
 

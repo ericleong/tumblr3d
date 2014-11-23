@@ -57,7 +57,7 @@ public class CardboardOverlayView extends LinearLayout {
 
         // Set some reasonable defaults.
         setDepthOffset(0.008f);
-        setColor(Color.rgb(150, 255, 180));
+        setColor(Color.rgb(103, 194, 149));
         setVisibility(View.VISIBLE);
 
         mTextFadeAnimation = new AlphaAnimation(1.0f, 0.0f);

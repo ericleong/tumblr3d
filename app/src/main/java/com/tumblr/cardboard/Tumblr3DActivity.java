@@ -55,7 +55,7 @@ import java.util.Queue;
 import javax.microedition.khronos.egl.EGLConfig;
 
 /**
- * A Cardboard sample application.
+ * Displays Tumblr photos in 3d!
  */
 public class Tumblr3DActivity extends CardboardActivity implements CardboardView.StereoRenderer {
 

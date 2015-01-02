@@ -1,12 +1,16 @@
 package com.tumblr.cardboard.networking;
 
 /**
+ * Simple cache for bitmaps.
+ *
  * Created by ericleong on 10/23/14.
  */
+
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.support.v4.util.LruCache;
 import android.util.DisplayMetrics;
+
 import com.android.volley.toolbox.ImageLoader.ImageCache;
 
 public class LruBitmapCache extends LruCache<String, Bitmap> implements ImageCache {

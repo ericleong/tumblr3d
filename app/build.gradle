@@ -2,7 +2,7 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 21
-    buildToolsVersion '21.1.1'
+    buildToolsVersion '21.1.2'
 
     defaultConfig {
         minSdkVersion 14
@@ -33,6 +33,6 @@ dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
 
     compile 'com.android.support:support-v4:+'
-	compile 'com.tumblr:jumblr:0.0.10'
-	compile 'com.mcxiaoke.volley:library:1.0.7'
+	compile 'com.tumblr:jumblr:0.0.11'
+	compile 'com.mcxiaoke.volley:library:1.0.10'
 }

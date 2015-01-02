@@ -1,7 +1,6 @@
 package com.tumblr.cardboard.networking;
 
 import android.content.Context;
-import android.graphics.Bitmap;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -9,6 +8,8 @@ import com.android.volley.toolbox.ImageLoader;
 import com.android.volley.toolbox.Volley;
 
 /**
+ * Simple queue for requesting photos.
+ * <p/>
  * Created by ericleong on 10/23/14.
  */
 public class PhotoRequestQueue {

@@ -11,7 +11,7 @@ import java.util.Map;
 
 /**
  * Basic {@link com.tumblr.jumblr.JumblrClient} that downloads photos.
- *
+ * <p/>
  * Created by ericleong on 10/23/14.
  */
 public class TumblrClient {
@@ -34,7 +34,7 @@ public class TumblrClient {
 
 		final List<Post> posts = mApi.tagged(query, options);
 		final Iterator<Post> iter = posts.iterator();
-		while(iter.hasNext()) {
+		while (iter.hasNext()) {
 			final Post post = iter.next();
 			if (!post.getType().equals(TYPE_PHOTO)) {
 				iter.remove();

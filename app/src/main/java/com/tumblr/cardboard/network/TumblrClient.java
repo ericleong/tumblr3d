@@ -1,4 +1,4 @@
-package com.tumblr.cardboard.networking;
+package com.tumblr.cardboard.network;
 
 import com.tumblr.cardboard.BuildConfig;
 import com.tumblr.jumblr.JumblrClient;

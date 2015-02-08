@@ -27,16 +27,18 @@ import android.os.Vibrator;
 import android.util.Log;
 import android.view.KeyEvent;
 
-import com.android.volley.Response;
-import com.android.volley.VolleyError;
-import com.android.volley.toolbox.ImageRequest;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.animation.GlideAnimation;
+import com.bumptech.glide.request.target.SimpleTarget;
+import com.bumptech.glide.request.target.Target;
 import com.google.vrtoolkit.cardboard.CardboardActivity;
 import com.google.vrtoolkit.cardboard.CardboardView;
 import com.google.vrtoolkit.cardboard.EyeTransform;
 import com.google.vrtoolkit.cardboard.HeadTransform;
 import com.google.vrtoolkit.cardboard.Viewport;
-import com.tumblr.cardboard.networking.PhotoRequestQueue;
-import com.tumblr.cardboard.networking.TumblrClient;
+import com.tumblr.cardboard.gif.GifResourceDecoder;
+import com.tumblr.cardboard.gif.GifTexture;
+import com.tumblr.cardboard.network.TumblrClient;
 import com.tumblr.jumblr.types.PhotoPost;
 import com.tumblr.jumblr.types.PhotoSize;
 import com.tumblr.jumblr.types.Post;
@@ -48,6 +50,7 @@ import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -55,7 +58,9 @@ import java.util.Queue;
 import javax.microedition.khronos.egl.EGLConfig;
 
 /**
- * Displays Tumblr photos in 3d!
+ * Displays Tumblr photo posts in 3D!
+ *
+ * Created for Tumblr's Fall 2014 hackathon.
  */
 public class Tumblr3DActivity extends CardboardActivity implements CardboardView.StereoRenderer {
 
@@ -135,8 +140,18 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 
 	private TumblrClient mTumblrClient;
 
-	private Queue<PhotoTexture> mWaitingPhotoTextures = new LinkedList<>();
+	/**
+	 * Notify OpenGL to create these textures.
+	 */
+	private final Queue<PhotoTexture> mWaitingPhotoTextures = new LinkedList<>();
+	/**
+	 * Notify OpenGL to update these textures.
+	 */
+	private final Queue<PhotoTexture> mUpdatingPhotoTextures = new LinkedList<>();
+
 	private List<Post> mCurrentPosts;
+
+	private GifResourceDecoder mGifResourceDecoder;
 
 	/**
 	 * Maps an OpenGL texture to a bitmap.
@@ -144,26 +159,107 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 	private class PhotoTexture {
 		int texIndex;
 		Bitmap bitmap;
+		boolean recycle;
 
-		private PhotoTexture(int texIndex, Bitmap bitmap) {
+		private PhotoTexture(int texIndex, Bitmap bitmap, boolean recycle) {
 			this.texIndex = texIndex;
 			this.bitmap = bitmap;
+			this.recycle = recycle;
 		}
 	}
 
 	/**
-	 * Puts a bitmap into the queue of textures to load.
+	 * Updates a texture with a photo.
 	 */
-	private class TextureLoader implements Response.Listener<Bitmap> {
-		private int index;
+	private class TextureTarget extends SimpleTarget<Bitmap> {
 
-		private TextureLoader(int index) {
-			this.index = index;
+		private final int texIndex;
+
+		private TextureTarget(int texIndex) {
+			this.texIndex = texIndex;
 		}
 
 		@Override
-		public void onResponse(Bitmap response) {
-			mWaitingPhotoTextures.add(new PhotoTexture(index, response));
+		public void onResourceReady(Bitmap resource, GlideAnimation<? super Bitmap> glideAnimation) {
+			if (resource != null) {
+				updateOrCreateTexture(texIndex, resource, true);
+			} else {
+				Log.e(TAG, "Null bitmap for " + texIndex);
+			}
+		}
+	}
+
+	private class TextureUpdateListener implements GifTexture.GifUpdateListener {
+
+		private final int texIndex;
+
+		private TextureUpdateListener(int texIndex) {
+			this.texIndex = texIndex;
+		}
+
+		@Override
+		public void onFrameUpdate(Bitmap bitmap) {
+			if (bitmap != null) {
+				updateOrCreateTexture(texIndex, bitmap, false);
+			} else {
+				Log.e(TAG, "Null bitmap when updating " + texIndex);
+			}
+		}
+	}
+
+	private class GifTextureTarget extends SimpleTarget<byte[]> {
+
+		private final GifTexture.GifUpdateListener gifUpdateListener;
+		private GifTexture gifTexture;
+
+		private GifTextureTarget(int texIndex) {
+			this.gifUpdateListener = new TextureUpdateListener(texIndex);
+		}
+
+		@Override
+		public void onResourceReady(byte[] resource, GlideAnimation<? super byte[]> glideAnimation) {
+			gifTexture = mGifResourceDecoder.decode(resource, Target.SIZE_ORIGINAL, Target.SIZE_ORIGINAL).get();
+
+			if (gifTexture != null) {
+				gifTexture.setGifUpdateListener(gifUpdateListener);
+				gifTexture.start();
+			}
+		}
+
+		@Override
+		public void onStart() {
+			super.onStart();
+
+			if (gifTexture != null) {
+				gifTexture.start();
+			}
+		}
+
+		@Override
+		public void onStop() {
+			if (gifTexture != null) {
+				gifTexture.stop();
+			}
+		}
+
+		@Override
+		public void onDestroy() {
+			if (gifTexture != null) {
+				gifTexture.stop();
+				gifTexture.recycle();
+			}
+		}
+	}
+
+	public void updateOrCreateTexture(int texIndex, Bitmap bitmap, boolean recycle) {
+		if (mTextureIds[texIndex] == 0) {
+			synchronized (mWaitingPhotoTextures) {
+				mWaitingPhotoTextures.add(new PhotoTexture(texIndex, bitmap, recycle));
+			}
+		} else {
+			synchronized (mUpdatingPhotoTextures) {
+				mUpdatingPhotoTextures.add(new PhotoTexture(texIndex, bitmap, false));
+			}
 		}
 	}
 
@@ -179,6 +275,11 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 
 		@Override
 		protected void onPostExecute(List<Post> posts) {
+
+			if (Tumblr3DActivity.this.isDestroyed()) {
+				return;
+			}
+
 			Log.w(TAG, "Grabbed " + posts.size() + " posts.");
 
 			mNumImages = Math.min(NUM_TEXTURES, posts.size());
@@ -196,15 +297,11 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 					}
 				}
 
-				PhotoRequestQueue.getInstance(Tumblr3DActivity.this).addToRequestQueue(
-						new ImageRequest(url,
-								new TextureLoader(finalI), 0, 0, null, new Response.ErrorListener() {
-					@Override
-					public void onErrorResponse(VolleyError error) {
-						Log.e(TAG, "Could not load image.", error);
-					}
+				if (url.endsWith(".gif")) {
+					Glide.with(Tumblr3DActivity.this).load(url).asGif().toBytes().into(new GifTextureTarget(finalI));
+				} else {
+					Glide.with(Tumblr3DActivity.this).load(url).asBitmap().into(new TextureTarget(finalI));
 				}
-				));
 			}
 
 			mCurrentPosts = posts;
@@ -289,6 +386,7 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 
 	    mTextureIds = new int[NUM_TEXTURES];
 
+	    mGifResourceDecoder = new GifResourceDecoder(this);
 	    mTumblrClient = new TumblrClient();
 
         mOverlayView = (CardboardOverlayView) findViewById(R.id.overlay);
@@ -298,7 +396,7 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 	protected void onResume() {
 		super.onResume();
 
-		new PostLoadTask().execute("cat");
+		new PostLoadTask().execute("cat gif");
 	}
 
 	@Override
@@ -423,15 +521,26 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
         mIsFloorParam = GLES20.glGetUniformLocation(mGlProgram, "u_IsFloor");
 	    mRectTextureUniformParam = GLES20.glGetUniformLocation(mGlProgram, "u_Texture");
 
-	    // load downloaded photos into OpenGL
-	    while (!mWaitingPhotoTextures.isEmpty()) {
-		    PhotoTexture texture = mWaitingPhotoTextures.remove();
-		    loadTextureInternal(texture.texIndex, texture.bitmap);
-		    if (mSelectedTexIndex < 0) {
-			    mSelectedTexIndex = texture.texIndex;
-			    selectObject(texture.texIndex);
-		    } else {
-			    unselectObject(texture.texIndex);
+	    // load gif updates into OpenGL
+	    synchronized (mUpdatingPhotoTextures) {
+		    while (!mUpdatingPhotoTextures.isEmpty()) {
+			    PhotoTexture texture = mUpdatingPhotoTextures.remove();
+			    updateTexture(texture.texIndex, texture.bitmap);
+		    }
+	    }
+
+	    // load new photos into OpenGL
+	    synchronized (mWaitingPhotoTextures) {
+		    // load downloaded photos into OpenGL
+		    while (!mWaitingPhotoTextures.isEmpty()) {
+			    PhotoTexture texture = mWaitingPhotoTextures.remove();
+			    loadTextureInternal(texture.texIndex, texture.bitmap, texture.recycle);
+			    if (mSelectedTexIndex < 0) {
+				    mSelectedTexIndex = texture.texIndex;
+				    selectObject(texture.texIndex);
+			    } else {
+				    unselectObject(texture.texIndex);
+			    }
 		    }
 	    }
 
@@ -661,9 +770,9 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 	        float pitch = (float)Math.atan2(objPositionVec[1], -objPositionVec[2]);
 	        float yaw = (float)Math.atan2(objPositionVec[0], -objPositionVec[2]);
 
-	        Log.i(TAG, "Object position: X: " + objPositionVec[0]
+	        Log.v(TAG, "Object position: X: " + objPositionVec[0]
 			        + "  Y: " + objPositionVec[1] + " Z: " + objPositionVec[2]);
-	        Log.i(TAG, "Object Pitch: " + pitch +"  Yaw: " + yaw);
+	        Log.v(TAG, "Object Pitch: " + pitch + "  Yaw: " + yaw);
 
 	        if ((Math.abs(pitch) < PITCH_LIMIT) && (Math.abs(yaw) < YAW_LIMIT)) {
 		        return i;
@@ -688,9 +797,9 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 	    float pitch = (float)Math.atan2(objPositionVec[1], -objPositionVec[2]);
 	    float yaw = (float)Math.atan2(objPositionVec[0], -objPositionVec[2]);
 
-	    Log.i(TAG, "Object position: X: " + objPositionVec[0]
+	    Log.v(TAG, "Object position: X: " + objPositionVec[0]
 			    + "  Y: " + objPositionVec[1] + " Z: " + objPositionVec[2]);
-	    Log.i(TAG, "Object Pitch: " + pitch +"  Yaw: " + yaw);
+	    Log.v(TAG, "Object Pitch: " + pitch + "  Yaw: " + yaw);
 
 	    return (Math.abs(pitch) < PITCH_LIMIT) && (Math.abs(yaw) < YAW_LIMIT);
     }
@@ -701,11 +810,11 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 	 * @param texIndex the desired texture index
 	 * @param bitmap the bitmap to put into OpenGL
 	 */
-	private void loadTextureInternal(int texIndex, Bitmap bitmap) {
+	private void loadTextureInternal(int texIndex, Bitmap bitmap, boolean recycle) {
 
 		GLES20.glGenTextures(1, mTextureIds, texIndex);
 
-		Log.w(TAG, "loading texture: " + texIndex + " -> " + mTextureIds[texIndex]);
+		Log.d(TAG, "loading texture: " + texIndex + " -> " + mTextureIds[texIndex]);
 
 		if (mTextureIds[texIndex] != 0) {
 
@@ -733,8 +842,11 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 			// Load the bitmap into the bound texture.
 			GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0);
 
-			// Recycle the bitmap, since its data has been loaded into OpenGL.
-			bitmap.recycle();
+			if (recycle) {
+				// Recycle the bitmap, since its data has been loaded into OpenGL.
+				// TODO: return to pool
+				bitmap.recycle();
+			}
 
 			mRectTextureIds[texIndex] = mTextureIds[texIndex];
 		}
@@ -742,6 +854,20 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 		if (mTextureIds[texIndex] == 0) {
 			Log.e(TAG, "Error loading texture.");
 //				throw new RuntimeException("Error loading texture.");
+		}
+	}
+
+	private void updateTexture(int texIndex, Bitmap bitmap) {
+		if (mTextureIds[texIndex] != 0) {
+
+			// Set the active texture unit
+			GLES20.glActiveTexture(GLES20.GL_TEXTURE0 + texIndex);
+
+			// Bind to the texture in OpenGL
+			GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextureIds[texIndex]);
+
+			// Load the bitmap into the bound texture.
+			GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0);
 		}
 	}
 }

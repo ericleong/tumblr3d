@@ -5,6 +5,8 @@ Tumblr3D
 
 Tumblr photo posts for [Google Cardboard](http://g.co/cardboard), with support for gifs.
 
+Originally created during Tumblr's Fall 2014 HackDay.
+
 build
 -----
 To run this project, you need API keys from [Tumblr](https://www.tumblr.com/oauth/apps).

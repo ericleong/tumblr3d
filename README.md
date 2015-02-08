@@ -3,7 +3,7 @@
 Tumblr3D
 ========
 
-Tumblr posts for [Google Cardboard](http://g.co/cardboard).
+Tumblr photo posts for [Google Cardboard](http://g.co/cardboard), with support for gifs.
 
 build
 -----
@@ -19,5 +19,6 @@ tumblrSecretKey=""
 libraries
 ---------
 * [Volley](https://android.googlesource.com/platform/frameworks/volley/)
+* [Glide](https://github.com/bumptech/glide)
 * [Jumblr](https://github.com/tumblr/jumblr)
 * [Cardboard](https://developers.google.com/cardboard/overview)

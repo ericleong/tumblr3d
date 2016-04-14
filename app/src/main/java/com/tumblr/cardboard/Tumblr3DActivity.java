@@ -26,14 +26,13 @@ import android.os.Bundle;
 import android.os.Vibrator;
 import android.util.Log;
 import android.view.KeyEvent;
-
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.animation.GlideAnimation;
 import com.bumptech.glide.request.target.SimpleTarget;
 import com.bumptech.glide.request.target.Target;
 import com.google.vrtoolkit.cardboard.CardboardActivity;
 import com.google.vrtoolkit.cardboard.CardboardView;
-import com.google.vrtoolkit.cardboard.EyeTransform;
+import com.google.vrtoolkit.cardboard.Eye;
 import com.google.vrtoolkit.cardboard.HeadTransform;
 import com.google.vrtoolkit.cardboard.Viewport;
 import com.tumblr.cardboard.gif.GifResourceDecoder;
@@ -43,6 +42,7 @@ import com.tumblr.jumblr.types.PhotoPost;
 import com.tumblr.jumblr.types.PhotoSize;
 import com.tumblr.jumblr.types.Post;
 
+import javax.microedition.khronos.egl.EGLConfig;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -54,12 +54,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
-import javax.microedition.khronos.egl.EGLConfig;
-
 /**
  * Displays Tumblr photo posts in 3D!
  * <p/>
  * Created for Tumblr's Fall 2014 hackathon.
+ * Updated for Tumblr's Spring 2016 hackathon.
  */
 @SuppressWarnings("SpellCheckingInspection")
 public class Tumblr3DActivity extends CardboardActivity implements CardboardView.StereoRenderer {
@@ -67,6 +66,9 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 	private static final String TAG = Tumblr3DActivity.class.getSimpleName();
 
 	private static final float CAMERA_Z = 0.01f;
+
+	private static final float Z_NEAR = 0.1f;
+	private static final float Z_FAR = 100.0f;
 
 	private static final float YAW_LIMIT = 0.12f;
 	private static final float PITCH_LIMIT = 0.12f;
@@ -564,10 +566,10 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 	 * Draws a frame for an eye. The transformation for that eye (from the camera) is passed in as
 	 * a parameter.
 	 *
-	 * @param transform The transformations to apply to render this eye.
+	 * @param eye The transformations to apply to render this eye.
 	 */
 	@Override
-	public void onDrawEye(EyeTransform transform) {
+	public void onDrawEye(Eye eye) {
 		GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
 
 		mPositionParam = GLES20.glGetAttribLocation(mGlProgram, "a_Position");
@@ -581,26 +583,26 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 		checkGLError("mColorParam");
 
 		// Apply the eye transformation to the camera.
-		Matrix.multiplyMM(mView, 0, transform.getEyeView(), 0, mCamera, 0);
+		Matrix.multiplyMM(mView, 0, eye.getEyeView(), 0, mCamera, 0);
 
 		// Set the position of the light
 		Matrix.multiplyMV(mLightPosInEyeSpace, 0, mView, 0, mLightPosInWorldSpace, 0);
 		GLES20.glUniform3f(mLightPosParam, mLightPosInEyeSpace[0], mLightPosInEyeSpace[1],
 				mLightPosInEyeSpace[2]);
 
+		// Set mModelView for the floor, so we draw floor in the correct location
+		Matrix.multiplyMM(mModelView, 0, mView, 0, mModelFloor, 0);
+		Matrix.multiplyMM(mModelViewProjection, 0, eye.getPerspective(Z_NEAR, Z_FAR), 0,
+				mModelView, 0);
+		drawFloor(eye.getPerspective(Z_NEAR, Z_FAR));
+
 		// Build the ModelView and ModelViewProjection matrices
 		// for calculating rect position and light.
 		for (int i = 0; i < mNumImages; i++) {
 			Matrix.multiplyMM(mModelView, 0, mView, 0, mModelRect[i], 0);
-			Matrix.multiplyMM(mModelViewProjection, 0, transform.getPerspective(), 0, mModelView, 0);
+			Matrix.multiplyMM(mModelViewProjection, 0, eye.getPerspective(Z_NEAR, Z_FAR), 0, mModelView, 0);
 			drawRect(i);
 		}
-
-		// Set mModelView for the floor, so we draw floor in the correct location
-		Matrix.multiplyMM(mModelView, 0, mView, 0, mModelFloor, 0);
-		Matrix.multiplyMM(mModelViewProjection, 0, transform.getPerspective(), 0,
-				mModelView, 0);
-		drawFloor(transform.getPerspective());
 	}
 
 	@Override

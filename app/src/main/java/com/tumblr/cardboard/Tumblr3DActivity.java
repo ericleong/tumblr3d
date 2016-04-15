@@ -23,7 +23,9 @@ import android.opengl.GLUtils;
 import android.opengl.Matrix;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.os.Vibrator;
+import android.support.annotation.Nullable;
 import android.support.v4.util.Pair;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -63,7 +65,9 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 	private static final String TAG = Tumblr3DActivity.class.getSimpleName();
 
 	private static final int INVALID_TEXTURE = 0;
-	private static final int REFRESH_TEXTURE_ID = 0;
+	private static final int STATIC_TEXTURE_ID_REFRESH = 0;
+	private static final int STATIC_TEXTURE_ID_PLAY = 1;
+	private static final int STATIC_TEXTURE_ID_PAUSE = 2;
 
 	private static final float CAMERA_Z = 0.01f;
 
@@ -76,7 +80,7 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 	/**
 	 * 16 photos + 1 refresh icon.
 	 */
-	private static final int NUM_IMAGES_STATIC = 1;
+	private static final int NUM_IMAGES_STATIC = 3;
 	private static final int NUM_IMAGES_DYNAMIC = 16;
 	private static final int NUM_TEXTURES = NUM_IMAGES_DYNAMIC + NUM_IMAGES_STATIC;
 	private static final int DESIRED_PHOTO_SIZE = 500;
@@ -88,6 +92,8 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 	private final float SPHERE_RADIUS = 40f;
 	@SuppressWarnings("FieldCanBeLocal")
 	private final float FLOOR_DEPTH = 20f;
+
+	private static final long PLAY_NEXT = 2000;
 
 	// We keep the light always position just above the user.
 	private final float[] mLightPosInWorldSpace = new float[]{0.0f, 2.0f, 0.0f, 1.0f};
@@ -147,7 +153,10 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 
 	private TumblrClient mTumblrClient;
 	private long mBefore;
+	@Nullable
 	private AsyncTask<?, ?, ?> mLoadTask;
+	@Nullable
+	private CountDownTimer mPlayTimer;
 
 	/**
 	 * Notify OpenGL to create these textures.
@@ -173,6 +182,48 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 			synchronized (mUpdatingPhotoTextures) {
 				mUpdatingPhotoTextures.add(new PhotoTexture(texIndex, bitmap, false));
 			}
+		}
+	}
+
+	private class PlayTimer extends CountDownTimer {
+		/**
+		 * @param millisInFuture
+		 * 		The number of millis in the future from the call
+		 * 		to {@link #start()} until the countdown is done and {@link #onFinish()}
+		 * 		is called.
+		 * @param countDownInterval
+		 * 		The interval along the way to receive
+		 * 		{@link #onTick(long)} callbacks.
+		 */
+		public PlayTimer(final long millisInFuture, final long countDownInterval) {
+			super(millisInFuture, countDownInterval);
+		}
+
+		@Override
+		public void onTick(final long millisUntilFinished) {
+
+		}
+
+		@Override
+		public void onFinish() {
+			// First image that loads shows up in the "theater!"
+			if (mSelectedTexIndex >= NUM_IMAGES_STATIC) {
+
+				int photoIndex = mSelectedTexIndex - NUM_IMAGES_STATIC;
+
+				if (photoIndex + 1 < mNumImages) {
+
+					int texIndex = mSelectedTexIndex + 1;
+
+					select(texIndex);
+				} else {
+					select(NUM_IMAGES_STATIC); // the first
+					load();
+				}
+			}
+
+			mPlayTimer = new PlayTimer(PLAY_NEXT, PLAY_NEXT);
+			mPlayTimer.start();
 		}
 	}
 
@@ -331,13 +382,26 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 		mOverlayView = (CardboardOverlayView) findViewById(R.id.overlay);
 
 		Glide.with(this).fromResource().asBitmap().load(R.drawable.ic_refresh_white_24dp)
-				.into(new PhotoTexture.TextureTarget(REFRESH_TEXTURE_ID, this));
+				.transform(new FlipTransformation(this))
+				.into(new PhotoTexture.TextureTarget(STATIC_TEXTURE_ID_REFRESH, this));
+
+		Glide.with(this).fromResource().asBitmap().load(R.drawable.ic_play_circle_outline_white_24dp)
+				.transform(new FlipTransformation(this))
+				.into(new PhotoTexture.TextureTarget(STATIC_TEXTURE_ID_PLAY, this));
+
+		Glide.with(this).fromResource().asBitmap().load(R.drawable.ic_pause_circle_outline_white_24dp)
+				.transform(new FlipTransformation(this))
+				.into(new PhotoTexture.TextureTarget(STATIC_TEXTURE_ID_PAUSE, this));
 	}
 
 	@Override
 	protected void onResume() {
 		super.onResume();
 
+		load();
+	}
+
+	private void load() {
 		if (mLoadTask == null || mLoadTask.getStatus() == AsyncTask.Status.FINISHED) {
 			mLoadTask = new PostLoadTask().execute(getSearchTerm());
 		}
@@ -492,14 +556,15 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 						// Put image in the right spot
 						unselectPhoto(texture.texIndex - NUM_IMAGES_STATIC);
 					}
-				} else if (texture.texIndex == REFRESH_TEXTURE_ID) {
-					placePhoto(mModelRect, mImageRect, texture.texIndex, 1, -180, 30, SPHERE_RADIUS / 2);
+				} else if (texture.texIndex == STATIC_TEXTURE_ID_REFRESH) {
+					placePhoto(mModelRect, mImageRect, texture.texIndex, 1, 180, 30, SPHERE_RADIUS / 2);
+				} else if (texture.texIndex == STATIC_TEXTURE_ID_PLAY) {
+					placePhoto(mModelRect, mImageRect, texture.texIndex, 1, 210, 30, SPHERE_RADIUS / 2);
+				} else if (texture.texIndex == STATIC_TEXTURE_ID_PAUSE) {
+					placePhoto(mModelRect, mImageRect, texture.texIndex, 1, 150, 30, SPHERE_RADIUS / 2);
 				}
 			}
 		}
-
-		// Build the Model part of the ModelView matrix.
-//        Matrix.rotateM(mModelRect, 0, TIME_DELTA, 0.5f, 0.5f, 1.0f);
 
 		// Build the camera matrix and apply it to the ModelView.
 		Matrix.setLookAtM(mCamera, 0, 0.0f, 0.0f, CAMERA_Z, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
@@ -652,16 +717,20 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 				if (mCurrentPosts != null && photoIndex < mCurrentPosts.size()) {
 					mOverlayView.show3DToast(mCurrentPosts.get(photoIndex).getBlogName());
 				}
-				if (texIndex != mSelectedTexIndex) {
-					if (photoIndex >= 0 && photoIndex < mNumImages) {
-						unselectPhoto(mSelectedTexIndex - NUM_IMAGES_STATIC);
-					}
-					mSelectedTexIndex = texIndex;
-					selectPhoto(photoIndex);
-				}
-			} else if (texIndex == REFRESH_TEXTURE_ID) {
+				select(texIndex);
+			} else if (texIndex == STATIC_TEXTURE_ID_REFRESH) {
 				mOverlayView.show3DToast("Refreshing");
-				mLoadTask = new PostLoadTask().execute(getSearchTerm());
+				load();
+			} else if (texIndex == STATIC_TEXTURE_ID_PLAY) {
+				if (mPlayTimer == null) {
+					mPlayTimer = new PlayTimer(PLAY_NEXT, PLAY_NEXT);
+				}
+
+				mPlayTimer.start();
+			} else if (texIndex == STATIC_TEXTURE_ID_PAUSE) {
+				if (mPlayTimer != null) {
+					mPlayTimer.cancel();
+				}
 			}
 		} else {
 			mOverlayView.show3DToast("Select objects when they are highlighted!");
@@ -677,6 +746,24 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 			return true;
 		}
 		return super.onKeyDown(keyCode, event);
+	}
+
+	private void select(int texIndex) {
+		if (texIndex >= 0 && texIndex < NUM_TEXTURES) {
+			if (texIndex != mSelectedTexIndex) {
+				final int photoIndex = texIndex - NUM_IMAGES_STATIC;
+				final int previousPhotoIndex = mSelectedTexIndex - NUM_IMAGES_STATIC;
+				if (previousPhotoIndex >= 0 && previousPhotoIndex < mNumImages) {
+					unselectPhoto(previousPhotoIndex);
+				}
+				mSelectedTexIndex = texIndex;
+				selectPhoto(photoIndex);
+			} else {
+				Log.i(TAG, "Selecting the same photo: " + texIndex);
+			}
+		} else {
+			Log.i(TAG, "Selecting invalid photo: " + texIndex);
+		}
 	}
 
 	/**
@@ -727,7 +814,6 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 		Matrix.multiplyMM(modelRects[texIndex], 0, imageRects[texIndex], 0, rotationMatrix, 0);
 		Matrix.translateM(modelRects[texIndex], 0, 0f, 0f, yTranslate);
 		Matrix.scaleM(modelRects[texIndex], 0, scale, scale, 1f);
-
 	}
 
 	/**

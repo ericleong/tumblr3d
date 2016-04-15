@@ -27,6 +27,7 @@ import android.os.CountDownTimer;
 import android.os.Vibrator;
 import android.support.annotation.Nullable;
 import android.support.v4.util.Pair;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
 import com.bumptech.glide.Glide;
@@ -63,6 +64,8 @@ import java.util.Queue;
 public class Tumblr3DActivity extends CardboardActivity implements CardboardView.StereoRenderer, Texturizer {
 
 	private static final String TAG = Tumblr3DActivity.class.getSimpleName();
+
+	public static final String EXTRA_SEARCH_TERM = "com.tumblr.cardboard.search_term";
 
 	private static final int INVALID_TEXTURE = 0;
 	private static final int STATIC_TEXTURE_ID_REFRESH = 0;
@@ -170,6 +173,8 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 	private List<PhotoPost> mCurrentPosts;
 
 	private GifResourceDecoder mGifResourceDecoder;
+
+	private String mSearchTerm;
 
 	public void updateOrCreateTexture(int texIndex, Bitmap bitmap, boolean recycle, boolean force) {
 		if (mTextureIds[texIndex] == INVALID_TEXTURE || force) {
@@ -349,6 +354,14 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
+		if (getIntent() != null) {
+			mSearchTerm = getIntent().getStringExtra(EXTRA_SEARCH_TERM);
+		}
+
+		if (TextUtils.isEmpty(mSearchTerm) && savedInstanceState != null) {
+			mSearchTerm = savedInstanceState.getString(EXTRA_SEARCH_TERM);
+		}
+
 		setContentView(R.layout.common_ui);
 		CardboardView cardboardView = (CardboardView) findViewById(R.id.cardboard_view);
 		cardboardView.setRenderer(this);
@@ -395,6 +408,13 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 	}
 
 	@Override
+	protected void onSaveInstanceState(final Bundle outState) {
+		super.onSaveInstanceState(outState);
+
+		outState.putString(EXTRA_SEARCH_TERM, mSearchTerm);
+	}
+
+	@Override
 	protected void onResume() {
 		super.onResume();
 
@@ -402,8 +422,9 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 	}
 
 	private void load() {
-		if (mLoadTask == null || mLoadTask.getStatus() == AsyncTask.Status.FINISHED) {
-			mLoadTask = new PostLoadTask().execute(getSearchTerm());
+		if (mLoadTask == null || mLoadTask.getStatus() == AsyncTask.Status.FINISHED
+				&& !TextUtils.isEmpty(mSearchTerm)) {
+			mLoadTask = new PostLoadTask().execute(mSearchTerm);
 		}
 	}
 
@@ -926,9 +947,5 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 		} else {
 			Log.w(TAG, "Failed to update: " + texIndex + " val: " + mTextureIds[texIndex]);
 		}
-	}
-
-	public String getSearchTerm() {
-		return "rave gifs";
 	}
 }

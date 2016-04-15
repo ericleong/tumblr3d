@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<item name="blue_tumblr" type="color">#36465d</item>
+	<item name="blue_tumblr_dark" type="color">#03132a</item>
+	<item name="blue_accent" type="color">#529ecc</item>
+</resources>

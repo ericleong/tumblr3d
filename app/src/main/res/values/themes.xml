@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+	<style name="Theme.MyTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+
+		<!-- colorPrimary is used for the default action bar background -->
+		<item name="colorPrimary">@color/blue_tumblr</item>
+
+		<!-- colorPrimaryDark is used for the status bar -->
+		<item name="colorPrimaryDark">@color/blue_tumblr_dark</item>
+
+		<!-- colorAccent is used as the default value for colorControlActivated
+			 which is used to tint widgets -->
+		<item name="colorAccent">@color/blue_accent</item>
+
+	</style>
+
+</resources>

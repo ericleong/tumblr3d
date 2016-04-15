@@ -7,6 +7,10 @@ Tumblr photo posts for [Google Cardboard](http://g.co/cardboard), with support f
 
 Originally created during Tumblr's Fall 2014 HackDay.
 
+![a cat gif](tumblr3d.gif?raw=true)
+
+Updated with search and TV mode during Tumblr's Spring 2016 HackDay.
+
 build
 -----
 To run this project, you need API keys from [Tumblr](https://www.tumblr.com/oauth/apps).

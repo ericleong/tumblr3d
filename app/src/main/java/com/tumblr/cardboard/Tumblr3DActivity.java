@@ -649,7 +649,7 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 		if (texIndex >= 0) {
 			if (texIndex >= NUM_IMAGES_STATIC) {
 				final int photoIndex = texIndex - NUM_IMAGES_STATIC;
-				if (mCurrentPosts != null) {
+				if (mCurrentPosts != null && photoIndex < mCurrentPosts.size()) {
 					mOverlayView.show3DToast(mCurrentPosts.get(photoIndex).getBlogName());
 				}
 				if (texIndex != mSelectedTexIndex) {

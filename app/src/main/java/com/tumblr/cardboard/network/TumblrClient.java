@@ -1,9 +1,12 @@
 package com.tumblr.cardboard.network;
 
+import android.support.v4.util.Pair;
 import com.tumblr.cardboard.BuildConfig;
 import com.tumblr.jumblr.JumblrClient;
+import com.tumblr.jumblr.types.PhotoPost;
 import com.tumblr.jumblr.types.Post;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -27,20 +30,24 @@ public class TumblrClient {
 	 * @param query the tagged search parameter
 	 * @return a list of photo posts
 	 */
-	public List<Post> getPosts(String query) {
+	public Pair<Integer, List<PhotoPost>> getPosts(String query, int offset) {
 		final Map<String, String> options = new HashMap<String, String>();
 
 		options.put("type", TYPE_PHOTO);
+		options.put("offset", Integer.toString(offset));
 
 		final List<Post> posts = mApi.tagged(query, options);
+
+		final List<PhotoPost> photoPosts = new ArrayList<>(posts.size());
+
 		final Iterator<Post> iter = posts.iterator();
 		while (iter.hasNext()) {
 			final Post post = iter.next();
-			if (!post.getType().equals(TYPE_PHOTO)) {
-				iter.remove();
+			if (post instanceof PhotoPost) {
+				photoPosts.add((PhotoPost) post);
 			}
 		}
 
-		return posts;
+		return new Pair<>(posts.size(), photoPosts);
 	}
 }

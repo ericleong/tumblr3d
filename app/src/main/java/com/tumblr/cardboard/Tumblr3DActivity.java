@@ -76,9 +76,13 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 	private static final int NUM_TEXTURES = 16;
 	private static final int DESIRED_PHOTO_SIZE = 500;
 	private static final float SCALE_TV = 3f;
-	private static final float SCALE_TV_VR = 4f;
+	private static final float SCALE_TV_VR = 8f;
 	private static final float SCALE_THEATER = 6f;
-	private static final float SCALE_THEATER_VR = 8f;
+	private static final float SCALE_THEATER_VR = 16f;
+
+	private final float SPHERE_RADIUS = 40f;
+	@SuppressWarnings("FieldCanBeLocal")
+	private final float FLOOR_DEPTH = 20f;
 
 	// We keep the light always position just above the user.
 	private final float[] mLightPosInWorldSpace = new float[]{0.0f, 2.0f, 0.0f, 1.0f};
@@ -128,9 +132,6 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 	private float[] mModelFloor;
 
 	private int mSelectedTexIndex = -1;
-	private float mObjectDistance = 16f;
-	@SuppressWarnings("FieldCanBeLocal")
-	private float mFloorDepth = 20f;
 
 	private int mNumImages = NUM_TEXTURES;
 
@@ -484,7 +485,7 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 		GLES20.glEnable(GLES20.GL_DEPTH_TEST);
 
 		Matrix.setIdentityM(mModelFloor, 0);
-		Matrix.translateM(mModelFloor, 0, 0, -mFloorDepth, 0); // Floor appears below user
+		Matrix.translateM(mModelFloor, 0, 0, -FLOOR_DEPTH, 0); // Floor appears below user
 
 		checkGLError("onSurfaceCreated");
 	}
@@ -734,7 +735,7 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 	 */
 	private void selectObject(int i) {
 		Matrix.scaleM(mModelRect[i], 0, mImageRect[i], 0, mScaleTheater, mScaleTheater, 1f);
-		Matrix.translateM(mModelRect[i], 0, 0f, 0f, -mObjectDistance);
+		Matrix.translateM(mModelRect[i], 0, 0f, 0f, -SPHERE_RADIUS);
 	}
 
 	/**
@@ -765,7 +766,7 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 		Matrix.multiplyMM(rotationMatrix, 0, azimuthMatrix, 0, inclinationMatrix, 0);
 
 		Matrix.multiplyMM(mModelRect[i], 0, mImageRect[i], 0, rotationMatrix, 0);
-		Matrix.translateM(mModelRect[i], 0, 0f, 0f, -mObjectDistance);
+		Matrix.translateM(mModelRect[i], 0, 0f, 0f, -SPHERE_RADIUS);
 		Matrix.scaleM(mModelRect[i], 0, mScaleTV, mScaleTV, 1f);
 	}
 

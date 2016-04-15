@@ -83,7 +83,7 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 	private static final float SCALE_TV = 3f;
 	private static final float SCALE_TV_VR = 8f;
 	private static final float SCALE_THEATER = 6f;
-	private static final float SCALE_THEATER_VR = 16f;
+	private static final float SCALE_THEATER_VR = 20f;
 
 	private final float SPHERE_RADIUS = 40f;
 	@SuppressWarnings("FieldCanBeLocal")
@@ -843,6 +843,6 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 	}
 
 	public String getSearchTerm() {
-		return "cat gifs";
+		return "rave gifs";
 	}
 }

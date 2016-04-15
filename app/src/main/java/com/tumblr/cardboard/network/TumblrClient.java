@@ -30,15 +30,19 @@ public class TumblrClient {
 	 * @param query the tagged search parameter
 	 * @return a list of photo posts
 	 */
-	public Pair<Integer, List<PhotoPost>> getPosts(String query, int offset) {
+	public Pair<Long, List<PhotoPost>> getPosts(String query, long before) {
 		final Map<String, String> options = new HashMap<String, String>();
 
 		options.put("type", TYPE_PHOTO);
-		options.put("offset", Integer.toString(offset));
+		if (before > 0) {
+			options.put("before", Long.toString(before));
+		}
 
 		final List<Post> posts = mApi.tagged(query, options);
 
 		final List<PhotoPost> photoPosts = new ArrayList<>(posts.size());
+
+		long earliest = 0;
 
 		final Iterator<Post> iter = posts.iterator();
 		while (iter.hasNext()) {
@@ -46,8 +50,10 @@ public class TumblrClient {
 			if (post instanceof PhotoPost) {
 				photoPosts.add((PhotoPost) post);
 			}
+
+			earliest = post.getTimestamp();
 		}
 
-		return new Pair<>(posts.size(), photoPosts);
+		return new Pair<>(earliest, photoPosts);
 	}
 }

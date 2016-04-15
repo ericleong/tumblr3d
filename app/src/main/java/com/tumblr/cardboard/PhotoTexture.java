@@ -57,7 +57,7 @@ public class PhotoTexture {
 
 		private TextureUpdateListener(int texIndex, Texturizer texturizer) {
 			this.texIndex = texIndex;
-			this.texturizer = new WeakReference<Texturizer>(texturizer);
+			this.texturizer = new WeakReference<>(texturizer);
 		}
 
 		@Override
@@ -110,6 +110,7 @@ public class PhotoTexture {
 		@Override
 		public void onDestroy() {
 			if (gifTexture != null) {
+				gifTexture.setGifUpdateListener(null);
 				gifTexture.stop();
 				gifTexture.recycle();
 			}

@@ -146,7 +146,8 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 	private CardboardOverlayView mOverlayView;
 
 	private TumblrClient mTumblrClient;
-	private int mOffset;
+	private long mBefore;
+	private AsyncTask<?, ?, ?> mLoadTask;
 
 	/**
 	 * Notify OpenGL to create these textures.
@@ -163,10 +164,12 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 
 	public void updateOrCreateTexture(int texIndex, Bitmap bitmap, boolean recycle, boolean force) {
 		if (mTextureIds[texIndex] == INVALID_TEXTURE || force) {
+			Log.d(TAG, "Request to create " + texIndex);
 			synchronized (mWaitingPhotoTextures) {
 				mWaitingPhotoTextures.add(new PhotoTexture(texIndex, bitmap, recycle));
 			}
 		} else {
+			Log.d(TAG, "Request to load " + texIndex);
 			synchronized (mUpdatingPhotoTextures) {
 				mUpdatingPhotoTextures.add(new PhotoTexture(texIndex, bitmap, false));
 			}
@@ -176,21 +179,22 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 	/**
 	 * Loads photo posts in the background.
 	 */
-	private class PostLoadTask extends AsyncTask<String, Void, Pair<Integer, List<PhotoPost>>> {
+	private class PostLoadTask extends AsyncTask<String, Void, Pair<Long, List<PhotoPost>>> {
 
 		@Override
-		protected Pair<Integer, List<PhotoPost>> doInBackground(String... params) {
-			return mTumblrClient.getPosts(params[0], mOffset);
+		protected Pair<Long, List<PhotoPost>> doInBackground(String... params) {
+			Log.w(TAG, "Loading posts for " + params[0] + " before: " + mBefore);
+			return mTumblrClient.getPosts(params[0], mBefore);
 		}
 
 		@Override
-		protected void onPostExecute(Pair<Integer, List<PhotoPost>> result) {
+		protected void onPostExecute(Pair<Long, List<PhotoPost>> result) {
 
 			if (Tumblr3DActivity.this.isDestroyed()) {
 				return;
 			}
 
-			mOffset += result.first;
+			mBefore = result.first;
 
 			mNumImages = Math.min(NUM_IMAGES_DYNAMIC, result.second.size());
 
@@ -206,6 +210,11 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 				}
 
 				final int texIndex = NUM_IMAGES_STATIC + i;
+
+				if (mTargets[texIndex] != null) {
+					Glide.clear(mTargets[texIndex]);
+					mTargets[texIndex].onDestroy();
+				}
 
 				final Target<?> target;
 
@@ -223,10 +232,6 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 					target = photoTarget;
 
 					Glide.with(Tumblr3DActivity.this).load(url).asBitmap().into(photoTarget);
-				}
-
-				if (mTargets[texIndex] != null) {
-					Glide.clear(mTargets[texIndex]);
 				}
 
 				mTargets[texIndex] = target;
@@ -333,7 +338,9 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 	protected void onResume() {
 		super.onResume();
 
-		new PostLoadTask().execute("cat gif");
+		if (mLoadTask == null || mLoadTask.getStatus() == AsyncTask.Status.FINISHED) {
+			mLoadTask = new PostLoadTask().execute(getSearchTerm());
+		}
 	}
 
 	@Override
@@ -654,7 +661,7 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 				}
 			} else if (texIndex == REFRESH_TEXTURE_ID) {
 				mOverlayView.show3DToast("Refreshing");
-				new PostLoadTask().execute("cat gif");
+				mLoadTask = new PostLoadTask().execute(getSearchTerm());
 			}
 		} else {
 			mOverlayView.show3DToast("Select objects when they are highlighted!");
@@ -805,13 +812,9 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 			// Load the bitmap into the bound texture.
 			GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0);
 
-			if (recycle) {
-				// Recycle the bitmap, since its data has been loaded into OpenGL.
-				// TODO: return to pool
-				bitmap.recycle();
-			}
-
 			mRectTextureIds[texIndex] = mTextureIds[texIndex];
+		} else {
+			Log.w(TAG, "Failed to load: " + texIndex);
 		}
 
 		if (mTextureIds[texIndex] == INVALID_TEXTURE) {
@@ -825,11 +828,21 @@ public class Tumblr3DActivity extends CardboardActivity implements CardboardView
 			// Set the active texture unit
 			GLES20.glActiveTexture(GLES20.GL_TEXTURE0 + texIndex);
 
+			Matrix.setIdentityM(mImageRect[texIndex], 0);
+			Matrix.scaleM(mImageRect[texIndex], 0, 1f,
+					(float) bitmap.getHeight() / bitmap.getWidth(), 1f);
+
 			// Bind to the texture in OpenGL
 			GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextureIds[texIndex]);
 
 			// Load the bitmap into the bound texture.
 			GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0);
+		} else {
+			Log.w(TAG, "Failed to update: " + texIndex + " val: " + mTextureIds[texIndex]);
 		}
+	}
+
+	public String getSearchTerm() {
+		return "cat gifs";
 	}
 }
